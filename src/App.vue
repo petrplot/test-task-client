@@ -25,32 +25,26 @@
       </div>
       <div class="load"  v-else>идет загрузка...</div>
   </div>
-  
 </template>
 <script>
 import axios from 'axios';
 import { ref } from 'vue';
 
-
   export default {
-
       data(){
           return {
               arrObj:[],
-              canceled:false,
+              contrroller: new AbortController(),
               count:ref(0),
               reqDataObj:null,
               dataObj:{},
               isLoading:false,
               isObjectLoading:false,
-              longFetch:false
           }
       },
 
       methods:{
-       
-  
-    async getData(){
+          async getData(){
               try {
                   this.isLoading = true;
                   const response = await axios.get('http://localhost:5001/api/data')
@@ -61,32 +55,34 @@ import { ref } from 'vue';
                  this.isLoading = false; 
               }
           },
-    async postData(obj){
+          async postData(obj){
               try {
                 this.dataObj.email = obj.email,
                 this.dataObj.number = obj.number
                 this.isObjectLoading = true;
                 this.count +=1
-                const response = await axios.post('http://localhost:5001/api/data', 
-                  this.dataObj ,
+
+                const response = await axios.post('http://localhost:5001/api/data',
+                  this.dataObj,
                   {
-                    // signal:AbortSignal.timeout(1000),
+                    signal: this.contrroller.signal,
                     headers: {
                       'Content-Type': 'application/json'
                     }
                   })
-                  
                     this.reqDataObj = response.data;
                     this.count = 0
               }catch(e){
-                if (e.name =="CanceledError") {
-                  console.log('отмена запроса');
-                  this.canceled = true
-                }
-                alert(e.response.data)
+                console.log(e.message)
               }finally{
                  this.isObjectLoading = false; 
               }
+          },
+          async cancelAndResendRequest(){
+              this.contrroller.abort()
+              this.count = 0
+              this.contrroller = new AbortController()
+              await this.postData(this.dataObj)
           }
       },
 
@@ -96,11 +92,10 @@ import { ref } from 'vue';
 
       watch:{
         count(){
-          console.log('count');
-          if(this.canceled){
-            console.log('x', this.count)
-            this.canceled = false
+          if (this.count>1) {
+            this.cancelAndResendRequest()
           }
+          
         }
       }
 

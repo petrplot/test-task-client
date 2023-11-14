@@ -46,7 +46,8 @@ export default {
         if(this.dataObj.number
         &&
         this.dataObj.email 
-        ){
+        ){ 
+            this.dataObj.number = this.dataObj.number.replace(/(-|_)/g,'')
             this.sendEndClearForm()
         }else{
           alert('введите корректные данные')  
